@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin:0; background:#F4F6FA; color:#1F2937; font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif; }
+.wrap { max-width:1100px; margin:0 auto; padding:18px; }
+h1 { font-size:20px; margin:0 0 2px; color:#1F3864; }
+.sub { color:#6B7280; font-size:12px; margin-bottom:12px; }
+.funnel { display:grid; grid-template-columns:1fr auto 1fr auto 1fr; align-items:center; gap:6px; background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:14px; margin-bottom:14px; }
+.fstep { text-align:center; } .fstep .fn { font-size:24px; font-weight:800; } .fstep .fl { font-size:12px; color:#374151; margin-top:2px; } .fstep .ft { font-size:10px; color:#9CA3AF; }
+.farrow { color:#9CA3AF; font-size:18px; text-align:center; }
+.f-p .fn{color:#9CA3AF;} .f-f .fn{color:#2E5496;} .f-w .fn{color:#5E927E;}
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
+.card { background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:12px 14px; }
+.card .label { font-size:12px; color:#6B7280; } .card .val { font-size:22px; font-weight:700; margin-top:3px; color:#1F3864; } .card .val.warn { color:#BC6B62; } .card .note{font-size:10px;color:#9CA3AF;margin-top:2px;}
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.panel { background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:14px; }
+.panel h2 { font-size:13px; margin:0 0 4px; color:#374151; } .panel .h3{font-size:11px;color:#9CA3AF;margin:0 0 10px;}
+.panel.full { grid-column:1/-1; }
+.chartbox { position:relative; height:250px; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th,td { text-align:left; padding:8px; border-bottom:1px solid #F0F0F3; }
+th { color:#6B7280; font-weight:600; }
+.repclick { color:#2E5496; cursor:pointer; font-weight:600; }
+.repclick:hover{ text-decoration:underline; }
+.lookbtn{ font-size:11px; color:#2E5496; cursor:pointer; border:1px solid #C7DBF5; border-radius:6px; padding:2px 8px; background:#F4F8FE; }
+.msg { padding:24px; text-align:center; color:#6B7280; }
+.err { color:#B91C1C; }
+details.src { background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:4px 14px 12px; grid-column:1/-1; }
+details.src summary { cursor:pointer; font-size:13px; font-weight:600; color:#374151; padding:10px 0; list-style:none; }
+details.src summary::-webkit-details-marker{display:none;} details.src summary::before{content:"▸ ";color:#9CA3AF;} details.src[open] summary::before{content:"▾ ";}
+.src td:first-child{font-weight:600;color:#1F3864;} .src td:nth-child(3){color:#6B7280;}
+.overlay { position:fixed; inset:0; background:rgba(17,24,39,.45); display:flex; align-items:center; justify-content:center; z-index:50; padding:24px; }
+.modal { background:#fff; border-radius:14px; width:min(720px,96vw); max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 18px 50px rgba(0,0,0,.3); }
+.modal-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid #EEF0F3; }
+.modal-head .t { font-weight:700; color:#1F3864; font-size:15px; }
+.modal-head button { border:none; background:#F3F4F6; border-radius:8px; width:30px; height:30px; cursor:pointer; font-size:15px; }
+.modal-body { padding:16px 18px; overflow:auto; }
+.msum{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;}
+.msum div{font-size:12px;color:#374151;} .msum b{font-size:16px;color:#1F3864;display:block;}
+.barrow{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12px;}
+.barrow .nm{width:130px;flex:none;color:#374151;} .barrow .bar{height:14px;border-radius:3px;background:#2E5496;} .barrow .stuck{background:#BC6B62;} .barrow .ct{color:#6B7280;font-size:11px;}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>영업 CRM 라이브 대시보드 <button onclick="location.reload()" style="font-size:11px;font-weight:600;color:#3B5B8C;border:1px solid #C7DBF5;background:#F4F8FE;border-radius:6px;padding:3px 10px;cursor:pointer;vertical-align:middle">🔄 새로고침</button></h1>
+  <div class="sub" id="sub">로딩 중…</div>
+  <div class="sub" id="gen" style="margin-top:-8px;color:#9CA3AF"></div>
+  <div id="content" style="display:none">
+    <div class="funnel" id="funnel"></div>
+    <div class="cards" id="cards"></div>
+    <div class="grid">
+      <div class="panel"><h2>사원별 진행 / 수주 / 실패 건수</h2><div class="h3">진행=영업 중 · 수주=계약 성공 · 실패=취소·부적합</div><div class="chartbox"><canvas id="cStack"></canvas></div></div>
+      <div class="panel"><h2>사원별 승률</h2><div class="h3">수주 ÷ (수주+실패) · 초록 40%↑ / 노랑 30~40 / 빨강 미만</div><div class="chartbox"><canvas id="cWin"></canvas></div></div>
+      <div class="panel"><h2>사원별 오래 방치(정체) 건수</h2><div class="h3">6개월(180일) 넘게 안 움직인 진행 건</div><div class="chartbox"><canvas id="cStale"></canvas></div></div>
+      <div class="panel"><h2>어느 단계에 거래가 몰려있나 (팀 전체)</h2><div class="h3">진행 중 거래의 단계별 건수</div><div class="chartbox"><canvas id="cStage"></canvas></div></div>
+
+      <div class="panel full">
+        <h2>사원별 요약 — 담당자 클릭 시 아파트 목록 팝업 (엑셀처럼)</h2>
+        <table id="tRep"><thead><tr><th>담당자</th><th>진행</th><th>수주</th><th>실패</th><th>승률</th><th>정체</th><th>목록</th></tr></thead><tbody></tbody></table>
+      </div>
+
+      <div class="panel full" id="stalePanel">
+        <h2>🚨 정체딜 (30일+) — 담당자별</h2>
+        <div class="h3">진행여부 '정체' · 경과일 30일 이상 · 오래된 순 / 🔴 60일↑ · 🟡 30~59일</div>
+        <div id="staleBox"><div class="msg">로딩 중…</div></div>
+      </div>
+
+      <details class="src">
+        <summary>📐 용어 · 산출 근거 (클릭하여 펼치기)</summary>
+        <table><thead><tr><th>용어</th><th>쉬운 설명</th><th>계산</th></tr></thead><tbody>
+          <tr><td>진행</td><td>아직 영업 중인 거래 (검증된 고객 이후)</td><td>상태가 '진행(active)' 인 건수</td></tr>
+          <tr><td>수주</td><td>계약에 성공한 거래</td><td>상태가 '수주(won)' 인 건수</td></tr>
+          <tr><td>실패</td><td>취소·타사·부적합으로 끝난 거래</td><td>상태가 '실패(lost)' 인 건수</td></tr>
+          <tr><td>승률</td><td>끝난 거래 중 수주 비율</td><td>수주 ÷ (수주 + 실패)</td></tr>
+          <tr><td>정체</td><td>오래 방치된 진행 건 (놓치기 쉬움)</td><td>마지막 업데이트가 180일 넘은 진행 건</td></tr>
+          <tr><td>잠재고객단</td><td>아직 초기 발굴 단계 (매출엔 미반영)</td><td>잠재·접촉·후속 단계</td></tr>
+          <tr><td>수주 금액</td><td>계약된 금액 합계 (Relate 입력값 기준, 미입력 많아 참고용)</td><td>딜 금액 합 ÷ 10,000(만원)</td></tr>
+        </tbody></table>
+      </details>
+    </div>
+  </div>
+  <div class="msg" id="msg" style="display:none"></div>
+</div>
+
+<div id="modal" class="overlay" style="display:none">
+  <div class="modal">
+    <div class="modal-head"><span class="t" id="modalTitle"></span><button id="modalClose">✕</button></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const TOOL="mcp__f30bda7e-5c49-45c5-8032-d7a915fa22b6__read_file_content";
+const FILE_KPI="1WwzwtHPSD0i1VUGZ7UcxrLt7FPQgWTh0lbbNJylIIyQ";
+const FILE_DEAL="1pip8uSWkWnVsi5MHImB-mQk02j3HJilCg2enJraAnDw";
+const EXCLUDE=new Set(["TEAM","(미배정)","한인규","lsw","이승우"]);
+const PROSPECT=/잠재고객|Potential|접촉|Working|후속|Nurturing|유입/;
+const won=(n)=>Math.round((+n||0)/10000);
+const charts=[]; let repMap={}; let dealRows=[]; let staleGrp={};
+
+function parseTable(text){
+  const lines=text.split("\n").filter(l=>l.trim().startsWith("|"));
+  if(lines.length<3) return {header:[],rows:[]};
+  const pr=l=>l.replace(/\\\|/g,"§").split("|").slice(1,-1).map(c=>c.replace(/§/g,"|").replace(/\\_/g,"_").trim());
+  const header=pr(lines[0]);
+  return {header,rows:lines.slice(2).map(pr).filter(r=>r.length===header.length)};
+}
+const toObjs=({header,rows})=>rows.map(r=>{const o={};header.forEach((h,i)=>o[h]=r[i]);return o;});
+function parseStages(s){const out=[];if(!s)return out;s.split("|").forEach(seg=>{const m=seg.trim().match(/^(.+?):(\d+)(?:\(정체(\d+)\))?$/);if(m)out.push({name:m[1].trim(),total:+m[2],stuck:+(m[3]||0)});});return out;}
+
+const API="./data.json";  // 같은 폴더의 정적 데이터 (GitHub Pages)
+async function load(){
+  try{
+    const res=await fetch(API,{cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data=await res.json();
+    render(data.kpi||[]);
+    dealRows=(data.deals||[]).filter(o=>o.\uB2F4\uB2F9\uC790&&o.\uB2F4\uB2F9\uC790!=="(\uBBF8\uBC30\uC815)"&&o.\uB2F4\uB2F9\uC790!=="\uD55C\uC778\uADDC"&&o.\uB2F4\uB2F9\uC790!=="lsw"&&o.\uB2F4\uB2F9\uC790!=="\uC774\uC2B9\uC6B0");
+    renderStale();
+    if(data.generated_at){var el=document.getElementById("gen");if(el)el.textContent="\uB370\uC774\uD130 \uAC31\uC2E0: "+new Date(data.generated_at).toLocaleString("ko-KR");}
+  }catch(e){
+    var m=document.getElementById("msg");m.style.display="block";m.className="msg err";m.textContent="\uB370\uC774\uD130 \uB85C\uB4DC \uC624\uB958: "+(e&&e.message?e.message:e);
+  }
+}
+
+function render(objs){
+  if(!objs.length){const m=document.getElementById("msg");m.style.display="block";m.textContent="데이터가 없습니다.";return;}
+  const dates=objs.map(o=>o.date).filter(Boolean).sort(); const latest=dates[dates.length-1];
+  const byScope={}; objs.filter(o=>o.date===latest).forEach(o=>{byScope[o.scope]=o;});
+  const team=byScope["TEAM"];
+  const reps=Object.values(byScope).filter(o=>!EXCLUDE.has(o.scope)).sort((a,b)=>(+b.active||0)-(+a.active||0));
+  reps.forEach(r=>repMap[r.scope]=r);
+  document.getElementById("sub").textContent="기준일 "+latest+" · 숫자를 클릭하면 근거가 보입니다";
+  document.getElementById("content").style.display="block";
+
+  if(team){
+    const st=parseStages(team.stage_breakdown);
+    const prospect=st.filter(s=>PROSPECT.test(s.name)).reduce((a,s)=>a+s.total,0);
+    const focus=st.filter(s=>!PROSPECT.test(s.name)).reduce((a,s)=>a+s.total,0);
+    document.getElementById("funnel").innerHTML=
+      `<div class="fstep f-p"><div class="fn">${prospect}</div><div class="fl">잠재고객 (초기 발굴)</div><div class="ft">매출엔 미반영</div></div>`+
+      `<div class="farrow">▶</div><div class="fstep f-f"><div class="fn">${focus}</div><div class="fl">영업 진행 중</div><div class="ft">검증 이후 집중 구간</div></div>`+
+      `<div class="farrow">▶</div><div class="fstep f-w"><div class="fn">${+team.won||0}</div><div class="fl">수주 완료</div><div class="ft">계약 성공</div></div>`;
+    const cards=[
+      ["영업 진행 중",(+team.active||0)+"건",""],
+      ["수주 완료",(+team.won||0)+"건",""],
+      ["수주 금액",won(team.won_value).toLocaleString()+"만원","*Relate 입력값 기준"],
+      ["팀 승률",Math.round((+team.win_rate||0)*100)+"%",""],
+      ["오래 방치(정체)",(+team.stale||0)+"건","",(+team.stale||0)>0]
+    ];
+    document.getElementById("cards").innerHTML=cards.map(c=>`<div class="card"><div class="label">${c[0]}</div><div class="val ${c[4]?'warn':''}">${c[1]}</div>${c[2]?`<div class="note">${c[2]}</div>`:""}</div>`).join("");
+  }
+
+  const names=reps.map(r=>r.scope);
+  const C={blue:"#2E5496",green:"#5E927E",amber:"#C8A24C",red:"#BC6B62"};
+  const o=(x={})=>Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11}}}}},x);
+  charts.push(new Chart(cStack,{type:"bar",data:{labels:names,datasets:[
+    {label:"진행",data:reps.map(r=>+r.active||0),backgroundColor:C.blue},
+    {label:"수주",data:reps.map(r=>+r.won||0),backgroundColor:C.green},
+    {label:"실패",data:reps.map(r=>+r.lost||0),backgroundColor:C.red}]},options:o({scales:{x:{stacked:true},y:{stacked:true}}})}));
+  charts.push(new Chart(cWin,{type:"bar",data:{labels:names,datasets:[
+    {label:"승률(%)",data:reps.map(r=>Math.round((+r.win_rate||0)*100)),backgroundColor:reps.map(r=>(+r.win_rate||0)>=0.4?C.green:(+r.win_rate||0)>=0.3?C.amber:C.red)}]},options:o({plugins:{legend:{display:false}},scales:{y:{suggestedMax:100}}})}));
+  charts.push(new Chart(cStale,{type:"bar",data:{labels:names,datasets:[
+    {label:"정체",data:reps.map(r=>+r.stale||0),backgroundColor:C.red}]},options:o({plugins:{legend:{display:false}}})}));
+  let sp=team?parseStages(team.stage_breakdown).filter(s=>!PROSPECT.test(s.name)):[]; sp.sort((a,b)=>b.total-a.total); sp=sp.slice(0,12);
+  charts.push(new Chart(cStage,{type:"bar",data:{labels:sp.map(s=>s.name),datasets:[
+    {label:"보유 건수",data:sp.map(s=>s.total),backgroundColor:C.blue}]},options:o({indexAxis:"y",plugins:{legend:{display:false}}})}));
+
+  document.querySelector("#tRep tbody").innerHTML=reps.map(r=>{
+    const stale=+r.stale||0; const col=stale>=3?"#BC6B62":"#374151";
+    return `<tr><td><span class="repclick" onclick="explain('${r.scope}')">${r.scope}</span></td><td>${+r.active||0}</td><td style="color:#5E927E;font-weight:600">${+r.won||0}</td><td style="color:#BC6B62">${+r.lost||0}</td><td>${Math.round((+r.win_rate||0)*100)}%</td><td style="color:${col};font-weight:600">${stale}</td><td><span class="lookbtn" onclick="explain('${r.scope}')">목록</span></td></tr>`;
+  }).join("");
+}
+
+function renderStale(){
+  const box=document.getElementById("staleBox"); if(!box) return;
+  const stale=dealRows.filter(d=>d.진행여부==="정체" && (+d.경과일||0)>=30 && !PROSPECT.test(d.단계||""));
+  if(!stale.length){ box.innerHTML='<div class="msg">30일 이상 정체된 딜이 없습니다.</div>'; return; }
+  staleGrp={}; stale.forEach(d=>{(staleGrp[d.담당자]=staleGrp[d.담당자]||[]).push(d);});
+  const reps=Object.keys(staleGrp).sort((a,b)=>staleGrp[b].length-staleGrp[a].length);
+  const totRed=stale.filter(d=>(+d.경과일||0)>=60).length;
+  let html=`<div style="font-size:12px;color:#374151;margin-bottom:10px">총 <b>${stale.length}건</b> 정체 · 🔴 60일↑ <b style="color:#BC6B62">${totRed}건</b> · 담당자 ${reps.length}명 <span style="color:#9CA3AF">· 카드를 누르면 상세 목록</span></div>`;
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px">`;
+  reps.forEach(rep=>{
+    const list=staleGrp[rep]; const red=list.filter(d=>(+d.경과일||0)>=60).length, yel=list.length-red;
+    const amt=Math.round(list.reduce((a,d)=>a+(+d.금액||0),0)/10000);
+    const maxd=Math.max.apply(null,list.map(d=>+d.경과일||0));
+    html+=`<div onclick="explainStale('${rep}')" style="cursor:pointer;border:1px solid #E5E7EB;border-left:4px solid ${red?'#BC6B62':'#C8A24C'};border-radius:10px;padding:11px 13px;background:#fff" onmouseover="this.style.boxShadow='0 4px 14px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">`;
+    html+=`<div style="font-weight:700;color:#1F3864;font-size:13px">${rep}</div>`;
+    html+=`<div style="font-size:25px;font-weight:800;color:#1F3864;line-height:1.15;margin:3px 0">${list.length}<span style="font-size:12px;font-weight:500;color:#9CA3AF">건</span></div>`;
+    html+=`<div style="font-size:12px;color:#374151">🔴 ${red} · 🟡 ${yel}</div>`;
+    html+=`<div style="font-size:10px;color:#9CA3AF;margin-top:3px">최장 ${maxd}일 · 합계 ${amt.toLocaleString()}만원</div>`;
+    html+=`</div>`;
+  });
+  html+=`</div>`;
+  box.innerHTML=html;
+}
+window.explainStale=function(name){
+  const list=(staleGrp[name]||[]).slice().sort((a,b)=>(+b.경과일||0)-(+a.경과일||0));
+  let html=`<div style="font-size:12px;color:#6B7280;margin-bottom:8px">진행여부 '정체' · 경과일 30일 이상 · 오래된 순 · ${list.length}건</div>`;
+  html+=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;">`;
+  html+=`<thead><tr style="background:#F3F4F6"><th style="padding:6px;border-bottom:1px solid #D1D5DB"></th><th style="padding:6px;text-align:left;border-bottom:1px solid #D1D5DB">아파트명</th><th style="padding:6px;border-bottom:1px solid #D1D5DB">단계</th><th style="padding:6px;border-bottom:1px solid #D1D5DB;text-align:right">금액(만원)</th><th style="padding:6px;border-bottom:1px solid #D1D5DB;text-align:right">경과일</th></tr></thead><tbody>`;
+  list.forEach(d=>{const dd=+d.경과일||0;html+=`<tr style="border-bottom:1px solid #F0F0F3"><td style="padding:6px">${dd>=60?'🔴':'🟡'}</td><td style="padding:6px">${d.아파트명||'-'}</td><td style="padding:6px;font-size:10px">${d.단계||'-'}</td><td style="padding:6px;text-align:right">${d.금액?Math.round((+d.금액)/10000).toLocaleString():'-'}</td><td style="padding:6px;text-align:right;font-weight:700;color:${dd>=60?'#BC6B62':'#B45309'}">${dd}일</td></tr>`;});
+  html+=`</tbody></table></div>`;
+  document.getElementById("modalTitle").textContent=name+" — 정체딜 "+list.length+"건";
+  document.getElementById("modalBody").innerHTML=html;
+  document.getElementById("modal").style.display="flex";
+};
+
+window.explain=function(name){
+  const r=repMap[name]; if(!r) return;
+  const deals=dealRows.filter(d=>d.담당자===name).sort((a,b)=>(+b.경과일||0)-(+a.경과일||0));
+  let html='';
+  if(deals.length){
+    html=`<div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#1F3864">${name} — 아파트 목록 ${deals.length}건</div>`;
+    html+=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;">`;
+    html+=`<thead><tr style="background:#F3F4F6"><th style="padding:6px;text-align:left;border-bottom:1px solid #D1D5DB">아파트명</th><th style="padding:6px;border-bottom:1px solid #D1D5DB">단계</th><th style="padding:6px;border-bottom:1px solid #D1D5DB">구간</th><th style="padding:6px;border-bottom:1px solid #D1D5DB;text-align:right">금액(만원)</th><th style="padding:6px;border-bottom:1px solid #D1D5DB;text-align:right">경과일</th><th style="padding:6px;border-bottom:1px solid #D1D5DB">상태</th></tr></thead><tbody>`;
+    deals.forEach(d=>{
+      const statusCol=d.진행여부==='정체'?'#BC6B62':d.진행여부==='수주완료'?'#5E927E':'#6B7280';
+      html+=`<tr style="border-bottom:1px solid #F0F0F3">`;
+      html+=`<td style="padding:6px">${d.아파트명||'-'}</td>`;
+      html+=`<td style="padding:6px;font-size:10px">${d.단계||'-'}</td>`;
+      html+=`<td style="padding:6px;font-size:10px">${d.구간||'-'}</td>`;
+      html+=`<td style="padding:6px;text-align:right">${d.금액?Math.round((+d.금액)/10000).toLocaleString():'-'}</td>`;
+      html+=`<td style="padding:6px;text-align:right;font-weight:600">${d.경과일||0}일</td>`;
+      html+=`<td style="padding:6px"><span style="display:inline-block;padding:2px 6px;border-radius:4px;background:${statusCol}22;color:${statusCol};font-size:10px;font-weight:600">${d.진행여부||'-'}</span></td>`;
+      html+=`</tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  } else {
+    html=`<div style="padding:20px;text-align:center;color:#6B7280"><div style="font-size:13px;font-weight:600;margin-bottom:4px">${name} — 아파트 목록 없음</div>`;
+    html+=`<div style="font-size:11px">KPI 워크플로우 실행 후 데이터가 채워집니다. (n8n "Relate 일일 KPI → Google Sheets" Execute)</div></div>`;
+  }
+  document.getElementById("modalTitle").textContent=name+" — 아파트 목록";
+  document.getElementById("modalBody").innerHTML=html;
+  document.getElementById("modal").style.display="flex";
+};
+document.getElementById("modalClose").addEventListener("click",()=>document.getElementById("modal").style.display="none");
+document.getElementById("modal").addEventListener("click",e=>{if(e.target.id==="modal")document.getElementById("modal").style.display="none";});
+load();
+</script>
+</body>
+</html>
