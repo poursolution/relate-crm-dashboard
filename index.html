@@ -13,10 +13,10 @@ h1 { font-size:20px; margin:0 0 2px; color:#1F3864; }
 .funnel { display:grid; grid-template-columns:1fr auto 1fr auto 1fr; align-items:center; gap:6px; background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:14px; margin-bottom:14px; }
 .fstep { text-align:center; } .fstep .fn { font-size:24px; font-weight:800; } .fstep .fl { font-size:12px; color:#374151; margin-top:2px; } .fstep .ft { font-size:10px; color:#9CA3AF; }
 .farrow { color:#9CA3AF; font-size:18px; text-align:center; }
-.f-p .fn{color:#9CA3AF;} .f-f .fn{color:#2E5496;} .f-w .fn{color:#5E927E;}
+.f-p .fn{color:#9CA3AF;} .f-f .fn{color:#2E5496;} .f-w .fn{color:#2BA86E;}
 .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
 .card { background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:12px 14px; }
-.card .label { font-size:12px; color:#6B7280; } .card .val { font-size:22px; font-weight:700; margin-top:3px; color:#1F3864; } .card .val.warn { color:#BC6B62; } .card .note{font-size:10px;color:#9CA3AF;margin-top:2px;}
+.card .label { font-size:12px; color:#6B7280; } .card .val { font-size:22px; font-weight:700; margin-top:3px; color:#1F3864; } .card .val.warn { color:#E0584F; } .card .note{font-size:10px;color:#9CA3AF;margin-top:2px;}
 .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 .panel { background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:14px; }
 .panel h2 { font-size:13px; margin:0 0 4px; color:#374151; } .panel .h3{font-size:11px;color:#9CA3AF;margin:0 0 10px;}
@@ -60,6 +60,12 @@ details.src summary::-webkit-details-marker{display:none;} details.src summary::
       <div class="panel full">
         <h2>사원별 요약 — 담당자 클릭 시 아파트 목록 팝업 (엑셀처럼)</h2>
         <table id="tRep"><thead><tr><th>담당자</th><th>진행</th><th>수주</th><th>실패</th><th>승률</th><th>정체</th><th>목록</th></tr></thead><tbody></tbody></table>
+      </div>
+
+      <div class="panel full" id="actPanel">
+        <h2>🏃 영업활동 — 사원별 활동률 · 노트 작성</h2>
+        <div class="h3">활동률 = 최근 7일 내 활동(단계 이동 또는 노트 작성) 있는 진행딜 비율 · 노트 = 작성 건수</div>
+        <table id="tAct"><thead><tr><th>담당자</th><th>진행</th><th>활동중(7일)</th><th>활동률</th><th>노트(7일)</th><th>노트(30일)</th></tr></thead><tbody></tbody></table>
       </div>
 
       <div class="panel full" id="trendPanel">
@@ -149,7 +155,7 @@ function render(objs){
   }
 
   const names=reps.map(r=>r.scope);
-  const C={blue:"#2E5496",green:"#5E927E",amber:"#C8A24C",red:"#BC6B62"};
+  const C={blue:"#2E5496",green:"#2BA86E",amber:"#E1A53A",red:"#E0584F"};
   const o=(x={})=>Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11}}}}},x);
   charts.push(new Chart(cStack,{type:"bar",data:{labels:names,datasets:[
     {label:"진행",data:reps.map(r=>+r.active||0),backgroundColor:C.blue},
@@ -164,8 +170,13 @@ function render(objs){
     {label:"보유 건수",data:sp.map(s=>s.total),backgroundColor:C.blue}]},options:o({indexAxis:"y",plugins:{legend:{display:false}}})}));
 
   document.querySelector("#tRep tbody").innerHTML=reps.map(r=>{
-    const stale=+r.stale||0; const col=stale>=3?"#BC6B62":"#374151";
-    return `<tr><td><span class="repclick" onclick="explain('${r.scope}')">${r.scope}</span></td><td>${+r.active||0}</td><td style="color:#5E927E;font-weight:600">${+r.won||0}</td><td style="color:#BC6B62">${+r.lost||0}</td><td>${Math.round((+r.win_rate||0)*100)}%</td><td style="color:${col};font-weight:600">${stale}</td><td><span class="lookbtn" onclick="explain('${r.scope}')">목록</span></td></tr>`;
+    const stale=+r.stale||0; const col=stale>=3?"#E0584F":"#374151";
+    return `<tr><td><span class="repclick" onclick="explain('${r.scope}')">${r.scope}</span></td><td>${+r.active||0}</td><td style="color:#2BA86E;font-weight:600">${+r.won||0}</td><td style="color:#E0584F">${+r.lost||0}</td><td>${Math.round((+r.win_rate||0)*100)}%</td><td style="color:${col};font-weight:600">${stale}</td><td><span class="lookbtn" onclick="explain('${r.scope}')">목록</span></td></tr>`;
+  }).join("");
+
+  const tab=document.querySelector("#tAct tbody"); if(tab) tab.innerHTML=reps.map(r=>{
+    const ar=Math.round((+r.act_rate||0)*100); const arc=ar>=50?"#2BA86E":ar>=25?"#E1A53A":"#E0584F";
+    return `<tr><td><span class="repclick" onclick="explain('${r.scope}')">${r.scope}</span></td><td>${+r.active||0}</td><td>${+r.active7||0}</td><td style="color:${arc};font-weight:700">${ar}%</td><td style="font-weight:600">${+r.notes7||0}</td><td>${+r.notes30||0}</td></tr>`;
   }).join("");
 
   const th={}; objs.filter(o=>o.scope==="TEAM"&&o.date).forEach(o=>{th[o.date]=o;});
@@ -184,13 +195,13 @@ function renderTrend(){
   if(sum){
     const lr=Math.round((+last.neglect_rate||0)*1000)/10;
     sum.innerHTML=
-      `<div><div style="font-size:11px;color:#6B7280">현재 방치 정체율</div><div style="font-size:24px;font-weight:800;color:${lr>5?'#BC6B62':'#5E927E'}">${lr}%</div><div style="font-size:10px;color:#9CA3AF">목표 5% 이하</div></div>`+
+      `<div><div style="font-size:11px;color:#6B7280">현재 방치 정체율</div><div style="font-size:24px;font-weight:800;color:${lr>5?'#E0584F':'#2BA86E'}">${lr}%</div><div style="font-size:10px;color:#9CA3AF">목표 5% 이하</div></div>`+
       `<div><div style="font-size:11px;color:#6B7280">정체(30일+) / 방치(90일+)</div><div style="font-size:24px;font-weight:800;color:#1F3864">${+last.stagnant30||0} / ${+last.neglect90||0}</div></div>`+
       `<div><div style="font-size:11px;color:#6B7280">기한초과 미조치</div><div style="font-size:24px;font-weight:800;color:#1F3864">${+last.overdue||0}건</div></div>`;
   }
   if(trendChart) trendChart.destroy();
   trendChart=new Chart(cv,{type:"line",data:{labels:months,datasets:[
-    {label:"방치 정체율(%)",data:rate,borderColor:"#BC6B62",backgroundColor:"rgba(188,107,98,.18)",tension:.3,fill:true,pointRadius:4},
+    {label:"방치 정체율(%)",data:rate,borderColor:"#E0584F",backgroundColor:"rgba(224,88,79,.15)",tension:.3,fill:true,pointRadius:4},
     {label:"목표 5%",data:months.map(()=>5),borderColor:"#9CA3AF",borderDash:[6,5],pointRadius:0,fill:false}
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11}}}},scales:{y:{beginAtZero:true,suggestedMax:100,ticks:{callback:v=>v+"%"}}}}});
 }
@@ -202,13 +213,13 @@ function renderStale(){
   staleGrp={}; stale.forEach(d=>{(staleGrp[d.담당자]=staleGrp[d.담당자]||[]).push(d);});
   const reps=Object.keys(staleGrp).sort((a,b)=>staleGrp[b].length-staleGrp[a].length);
   const totRed=stale.filter(d=>(+d.경과일||0)>=60).length;
-  let html=`<div style="font-size:12px;color:#374151;margin-bottom:10px">총 <b>${stale.length}건</b> 정체 · 🔴 60일↑ <b style="color:#BC6B62">${totRed}건</b> · 담당자 ${reps.length}명 <span style="color:#9CA3AF">· 카드를 누르면 상세 목록</span></div>`;
+  let html=`<div style="font-size:12px;color:#374151;margin-bottom:10px">총 <b>${stale.length}건</b> 정체 · 🔴 60일↑ <b style="color:#E0584F">${totRed}건</b> · 담당자 ${reps.length}명 <span style="color:#9CA3AF">· 카드를 누르면 상세 목록</span></div>`;
   html+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px">`;
   reps.forEach(rep=>{
     const list=staleGrp[rep]; const red=list.filter(d=>(+d.경과일||0)>=60).length, yel=list.length-red;
     const amt=Math.round(list.reduce((a,d)=>a+(+d.금액||0),0)/10000);
     const maxd=Math.max.apply(null,list.map(d=>+d.경과일||0));
-    html+=`<div onclick="explainStale('${rep}')" style="cursor:pointer;border:1px solid #E5E7EB;border-left:4px solid ${red?'#BC6B62':'#C8A24C'};border-radius:10px;padding:11px 13px;background:#fff" onmouseover="this.style.boxShadow='0 4px 14px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">`;
+    html+=`<div onclick="explainStale('${rep}')" style="cursor:pointer;border:1px solid #E5E7EB;border-left:4px solid ${red?'#E0584F':'#E1A53A'};border-radius:10px;padding:11px 13px;background:#fff" onmouseover="this.style.boxShadow='0 4px 14px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">`;
     html+=`<div style="font-weight:700;color:#1F3864;font-size:13px">${rep}</div>`;
     html+=`<div style="font-size:25px;font-weight:800;color:#1F3864;line-height:1.15;margin:3px 0">${list.length}<span style="font-size:12px;font-weight:500;color:#9CA3AF">건</span></div>`;
     html+=`<div style="font-size:12px;color:#374151">🔴 ${red} · 🟡 ${yel}</div>`;
@@ -223,7 +234,7 @@ window.explainStale=function(name){
   let html=`<div style="font-size:12px;color:#6B7280;margin-bottom:8px">진행여부 '정체' · 경과일 30일 이상 · 오래된 순 · ${list.length}건</div>`;
   html+=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;">`;
   html+=`<thead><tr style="background:#F3F4F6"><th style="padding:6px;border-bottom:1px solid #D1D5DB"></th><th style="padding:6px;text-align:left;border-bottom:1px solid #D1D5DB">아파트명</th><th style="padding:6px;border-bottom:1px solid #D1D5DB">단계</th><th style="padding:6px;border-bottom:1px solid #D1D5DB;text-align:right">금액(만원)</th><th style="padding:6px;border-bottom:1px solid #D1D5DB;text-align:right">경과일</th></tr></thead><tbody>`;
-  list.forEach(d=>{const dd=+d.경과일||0;html+=`<tr style="border-bottom:1px solid #F0F0F3"><td style="padding:6px">${dd>=60?'🔴':'🟡'}</td><td style="padding:6px">${d.아파트명||'-'}</td><td style="padding:6px;font-size:10px">${d.단계||'-'}</td><td style="padding:6px;text-align:right">${d.금액?Math.round((+d.금액)/10000).toLocaleString():'-'}</td><td style="padding:6px;text-align:right;font-weight:700;color:${dd>=60?'#BC6B62':'#B45309'}">${dd}일</td></tr>`;});
+  list.forEach(d=>{const dd=+d.경과일||0;html+=`<tr style="border-bottom:1px solid #F0F0F3"><td style="padding:6px">${dd>=60?'🔴':'🟡'}</td><td style="padding:6px">${d.아파트명||'-'}</td><td style="padding:6px;font-size:10px">${d.단계||'-'}</td><td style="padding:6px;text-align:right">${d.금액?Math.round((+d.금액)/10000).toLocaleString():'-'}</td><td style="padding:6px;text-align:right;font-weight:700;color:${dd>=60?'#E0584F':'#B45309'}">${dd}일</td></tr>`;});
   html+=`</tbody></table></div>`;
   document.getElementById("modalTitle").textContent=name+" — 정체딜 "+list.length+"건";
   document.getElementById("modalBody").innerHTML=html;
@@ -239,7 +250,7 @@ window.explain=function(name){
     html+=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;">`;
     html+=`<thead><tr style="background:#F3F4F6"><th style="padding:6px;text-align:left;border-bottom:1px solid #D1D5DB">아파트명</th><th style="padding:6px;border-bottom:1px solid #D1D5DB">단계</th><th style="padding:6px;border-bottom:1px solid #D1D5DB">구간</th><th style="padding:6px;border-bottom:1px solid #D1D5DB;text-align:right">금액(만원)</th><th style="padding:6px;border-bottom:1px solid #D1D5DB;text-align:right">경과일</th><th style="padding:6px;border-bottom:1px solid #D1D5DB">상태</th></tr></thead><tbody>`;
     deals.forEach(d=>{
-      const statusCol=d.진행여부==='정체'?'#BC6B62':d.진행여부==='수주완료'?'#5E927E':'#6B7280';
+      const statusCol=d.진행여부==='정체'?'#E0584F':d.진행여부==='수주완료'?'#2BA86E':'#6B7280';
       html+=`<tr style="border-bottom:1px solid #F0F0F3">`;
       html+=`<td style="padding:6px">${d.아파트명||'-'}</td>`;
       html+=`<td style="padding:6px;font-size:10px">${d.단계||'-'}</td>`;
